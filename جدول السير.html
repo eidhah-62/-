@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خطة السيطرة</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            margin: 20px;
+        }
+        .control-box {
+            width: 200px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid gold;
+            text-align: center;
+            height: 300px;
+        }
+        .main-box {
+            flex-grow: 1;
+            margin-right: 20px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid gold;
+            height: 300px;
+            position: relative;
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid white;
+        }
+        input {
+            background: transparent;
+            border: none;
+            color: white;
+            text-align: center;
+            width: 100%;
+            font-size: 14px;
+        }
+        .delete-btn {
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 24px;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-green {
+            background-color: green;
+        }
+        .btn-blue {
+            background-color: blue;
+        }
+        .btn-label {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>خطة السيطرة</h1>
+
+    <div class="container">
+        <div class="main-box" id="displayBox"></div>
+        <div class="control-box">
+            <h3>أدوات التحكم</h3>
+            <div>
+                <span class="btn-label">إضافة صورة</span>
+                <button class="btn btn-green" id="uploadBtn">+</button>
+            </div>
+            <input type="file" id="fileInput" accept="image/*, application/pdf" style="display: none;">
+            <div>
+                <span class="btn-label">إضافة صف</span>
+                <button class="btn btn-blue" id="addRowBtn">+</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th>الإجراء</th>
+                    <th>الملاحظات</th>
+                    <th>عدد الحصي</th>
+                    <th>عدد الخطوات</th>
+                    <th>المسافة بالأمتار</th>
+                    <th>عدد التكات</th>
+                    <th>الاتجاه العكسي</th>
+                    <th>الاتجاه المغناطيسي</th>
+                    <th>الاتجاه التسامتي</th>
+                    <th>الإحداثي</th>
+                    <th>المحطة</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('uploadBtn').addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const displayBox = document.getElementById('displayBox');
+                displayBox.innerHTML = '';  
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.style.maxWidth = "100%";
+                    img.style.maxHeight = "100%";
+                    displayBox.appendChild(img);
+                }
+            }
+        });
+
+        document.getElementById('addRowBtn').addEventListener('click', function() {
+            const table = document.getElementById('dataTable').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+
+            for (let i = 0; i < 11; i++) {
+                const cell = newRow.insertCell(i);
+                if (i === 0) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = 'X';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.onclick = function() {
+                        table.deleteRow(newRow.rowIndex - 1);
+                        saveTableData();
+                    };
+                    cell.appendChild(deleteBtn);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    cell.appendChild(input);
+                }
+            }
+
+            attachInputListeners();
+            saveTableData();
+        });
+
+        function attachInputListeners() {
+            document.querySelectorAll("#dataTable tbody tr").forEach(row => {
+                const tasamtyInput = row.cells[8].querySelector("input");
+                const magneticInput = row.cells[7].querySelector("input");
+                const reverseInput = row.cells[6].querySelector("input");
+                const tkatInput = row.cells[5].querySelector("input");
+                const distanceInput = row.cells[4].querySelector("input");
+                const stepsInput = row.cells[3].querySelector("input");
+                const hasyInput = row.cells[2].querySelector("input");
+                const notesInput = row.cells[1].querySelector("input");
+
+                if (tasamtyInput) {
+                    tasamtyInput.addEventListener("input", function() {
+                        let tasamtyValue = parseFloat(tasamtyInput.value) || 0;
+                        magneticInput.value = tasamtyValue - 2;
+                        updateReverseDirection(magneticInput, reverseInput);
+                        updateTkat(magneticInput, tkatInput);
+                        saveTableData();
+                    });
+                }
+
+                if (distanceInput) {
+                    distanceInput.addEventListener("input", function() {
+                        let distanceValue = parseFloat(distanceInput.value) || 0;
+                        stepsInput.value = Math.round(distanceValue * 1.3);
+                        updateHasyAndNotes(stepsInput, hasyInput, notesInput);
+                        saveTableData();
+                    });
+                }
+            });
+        }
+
+        function updateReverseDirection(magneticInput, reverseInput) {
+            let magneticValue = parseFloat(magneticInput.value) || 0;
+            reverseInput.value = (magneticValue > 180) ? (magneticValue - 180) : (magneticValue + 180);
+        }
+
+        function updateTkat(magneticInput, tkatInput) {
+            let magneticValue = parseFloat(magneticInput.value) || 0;
+            tkatInput.value = Math.floor(magneticValue / 3);
+        }
+
+        function updateHasyAndNotes(stepsInput, hasyInput, notesInput) {
+            let stepsValue = stepsInput.value.toString();
+            hasyInput.value = stepsValue.slice(0, 2);
+            notesInput.value = stepsValue.slice(2) + " خطوة";
+        }
+
+        function saveTableData() {
+            localStorage.setItem('tableData', JSON.stringify([...document.getElementById('dataTable').rows].slice(1).map(row => [...row.cells].map(cell => cell.children[0]?.value || ""))));
+        }
+
+        function loadTableData() {
+            document.getElementById('dataTable').getElementsByTagName('tbody')[0].innerHTML = "";
+            attachInputListeners();
+        }
+
+        window.onload = loadTableData;
+    </script>
+
+</body>
+</html>
